@@ -16,7 +16,7 @@ Snake este un joc clasic construit peste starter-ul SDL ProjectSkeleton. Control
 - Obstacole (pereti interiori): segmente gri scatterate pe tabla. Daca te lovesti de ele pierzi. Exista mereu un coridor liber pe randul de start.
 - Combo: daca mananci din nou inainte sa expire fereastra de combo, multiplicatorul creste (pana la x5). Lasi sa treaca timpul si se reseteaza.
 - Mod wrap: este mereu activ; cand iesi pe o margine, apari pe marginea opusa. Obstacolele raman mortale.
-- Viteza creste usor pe masura ce aduni scor.
+- Viteza creste usor pe masura ce mananci mancare normala si sarpele creste.
 
 ## Efecte Vizuale
 - Mancarea pulseaza in dimensiune si luminozitate.

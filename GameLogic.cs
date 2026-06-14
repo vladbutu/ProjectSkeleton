@@ -33,6 +33,7 @@ public sealed class AdventureGame
 
     private int _comboCount;
     private double _comboTimeLeft;
+    private int _normalFoodEaten;
 
     private readonly ParticleSystem _particles = new();
     private readonly ScreenShake _shake = new();
@@ -179,7 +180,7 @@ public sealed class AdventureGame
 
     private double CurrentStepSeconds()
     {
-        double speed = BaseStepSeconds - Score * 0.004;
+        double speed = BaseStepSeconds - _normalFoodEaten * 0.0025;
         return Math.Max(MinStepSeconds, speed);
     }
 
@@ -229,6 +230,7 @@ public sealed class AdventureGame
 
         if (grow)
         {
+            _normalFoodEaten++;
             Score += RegisterCombo();
 
             SpawnFoodBurst(_food);
@@ -300,6 +302,7 @@ public sealed class AdventureGame
         _bonusTimeLeft = 0;
         _comboCount = 0;
         _comboTimeLeft = 0;
+        _normalFoodEaten = 0;
         _moveTimer = TimeSpan.Zero;
         Score = 0;
         Status = GameStatus.Running;
