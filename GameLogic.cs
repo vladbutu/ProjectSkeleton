@@ -54,8 +54,9 @@ public sealed class AdventureGame
     private const int ObstacleCount = 10;
     private const double ComboWindow = 2.5;
     private const int ComboMaxMultiplier = 5;
-    private const int ObstacleMovesMin = 1;
-    private const int ObstacleMovesMax = 2;
+    private const int ObstacleMovesMin = 2;
+    private const int ObstacleMovesMax = 3;
+    private const int MinObstacleMoveDistance = 4;
     public AdventureGame(int boardWidth, int boardHeight, ISaveStore<SnakeSaveData> saveStore)
     {
         _boardWidth = boardWidth;
@@ -413,6 +414,7 @@ public sealed class AdventureGame
                        && _bonusFood != pos
                        && !_obstacleSet.Contains(pos)
                        && Math.Abs(pos.X - head.X) + Math.Abs(pos.Y - head.Y) >= 3
+                       && ManhattanDistance(pos, movingObstacle) >= MinObstacleMoveDistance
                            && HasAdjacentObstacle(pos, movingObstacle)
                        select pos).ToArray();
 
@@ -421,7 +423,17 @@ public sealed class AdventureGame
             return null;
         }
 
-        return options[Random.Shared.Next(options.Length)];
+        var ranked = options
+            .OrderByDescending(pos => ManhattanDistance(pos, movingObstacle))
+            .ToArray();
+
+        int farPoolSize = Math.Max(1, ranked.Length / 3);
+        return ranked[Random.Shared.Next(farPoolSize)];
+    }
+
+    private static int ManhattanDistance(GridPosition a, GridPosition b)
+    {
+        return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
     }
 
     private bool WouldLeaveIsolatedObstacle(GridPosition movingObstacle)
