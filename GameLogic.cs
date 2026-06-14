@@ -344,7 +344,7 @@ public sealed class AdventureGame
                     break;
                 }
 
-            MoveObstaclesAfterFood(); // Restore obstacle movement helper method
+                segment.Add(cell);
             }
 
             if (!valid)
@@ -376,10 +376,18 @@ public sealed class AdventureGame
                 break;
             }
 
-            int obstacleIndex = Random.Shared.Next(_obstacles.Count);
+            var movableIndices = Enumerable.Range(0, _obstacles.Count)
+                .Where(index => !WouldLeaveIsolatedObstacle(_obstacles[index]))
+                .ToArray();
+            if (movableIndices.Length == 0)
+            {
+                break;
+            }
+
+            int obstacleIndex = movableIndices[Random.Shared.Next(movableIndices.Length)];
             var oldPos = _obstacles[obstacleIndex];
 
-            var newPos = PickFairObstacleCell();
+            var newPos = PickFairObstacleCell(oldPos);
             if (newPos is null)
             {
                 continue;
@@ -390,7 +398,7 @@ public sealed class AdventureGame
         }
     }
 
-    private GridPosition? PickFairObstacleCell()
+    private GridPosition? PickFairObstacleCell(GridPosition movingObstacle)
     {
         var head = _snake.Head;
 
@@ -402,6 +410,7 @@ public sealed class AdventureGame
                        && _bonusFood != pos
                        && !_obstacleSet.Contains(pos)
                        && Math.Abs(pos.X - head.X) + Math.Abs(pos.Y - head.Y) >= 3
+                           && HasAdjacentObstacle(pos, movingObstacle)
                        select pos).ToArray();
 
         if (options.Length == 0)
@@ -410,6 +419,77 @@ public sealed class AdventureGame
         }
 
         return options[Random.Shared.Next(options.Length)];
+    }
+
+    private bool WouldLeaveIsolatedObstacle(GridPosition movingObstacle)
+    {
+        var neighbors = GetOrthogonalNeighbors(movingObstacle);
+        foreach (var neighbor in neighbors)
+        {
+            if (!_obstacleSet.Contains(neighbor))
+            {
+                continue;
+            }
+
+            if (CountAdjacentObstacles(neighbor, movingObstacle) == 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private int CountAdjacentObstacles(GridPosition position, GridPosition exclude)
+    {
+        int count = 0;
+        foreach (var neighbor in GetOrthogonalNeighbors(position))
+        {
+            if (neighbor == exclude)
+            {
+                continue;
+            }
+
+            if (_obstacleSet.Contains(neighbor))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private GridPosition[] GetOrthogonalNeighbors(GridPosition position)
+    {
+        return
+        [
+            new GridPosition(position.X + 1, position.Y),
+            new GridPosition(position.X - 1, position.Y),
+            new GridPosition(position.X, position.Y + 1),
+            new GridPosition(position.X, position.Y - 1),
+        ];
+    }
+
+    private bool HasAdjacentObstacle(GridPosition position, GridPosition movingObstacle)
+    {
+        var neighbors = GetOrthogonalNeighbors(position);
+
+        foreach (var neighbor in neighbors)
+        {
+            bool inBounds = neighbor.X >= 0 && neighbor.X < _boardWidth
+                && neighbor.Y >= 0 && neighbor.Y < _boardHeight;
+            if (!inBounds)
+            {
+                continue;
+            }
+
+            if (_obstacleSet.Contains(neighbor) && neighbor != movingObstacle)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 
