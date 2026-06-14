@@ -65,16 +65,7 @@ public class SdlContext : INativeContext
 
     public bool TryGetProcAddress(string proc, [UnscopedRef] out IntPtr addr, int? slot = null)
     {
-        try
-        {
-            addr = NativeLibrary.GetExport(_nativeLibrary, proc);
-        }
-        catch (EntryPointNotFoundException)
-        {
-            addr = IntPtr.Zero;
-        }
-
-        return addr != IntPtr.Zero;
+        return NativeLibrary.TryGetExport(_nativeLibrary, proc, out addr);
     }
 
     private void ReleaseUnmanagedResources()

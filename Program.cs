@@ -7,18 +7,18 @@ public static class Program
 {
     public static void Main()
     {
-        var sdl = new Sdl(new SdlContext());
+        using var sdlContext = new SdlContext();
+        var sdl = new Sdl(sdlContext);
 
         UInt64 framesRenderedCounter = 0;
         var timer = new Stopwatch();
+        timer.Start();
 
         ReadOnlySpan<byte> keyboardState;
         unsafe
         {
             keyboardState = new(sdl.GetKeyboardState(null), (int)KeyCode.Count);
         }
-
-        Span<byte> mouseButtonStates = stackalloc byte[(int)MouseButton.Count];
 
         var ev = new Event();
 
@@ -33,7 +33,7 @@ public static class Program
         unsafe
         {
             window = (IntPtr)sdl.CreateWindow(
-                "The Adventure", Sdl.WindowposUndefined, Sdl.WindowposUndefined, 800, 800,
+                "The Adventure", Sdl.WindowposUndefined, Sdl.WindowposUndefined, 860, 860,
                 (uint)WindowFlags.Resizable | (uint)WindowFlags.AllowHighdpi
             );
 
@@ -67,10 +67,16 @@ public static class Program
             throw new Exception("Failed to create renderer.");
         }
 
-        var startX = 100;
-        var startY = 100;
-        var endX = 200;
-        var endY = 200;
+        var saveFile = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "TheAdventure",
+            "save.json");
+
+        var game = new AdventureGame(20, 20, new JsonFileStore<SnakeSaveData>(saveFile));
+        game.InitializeAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+        int viewportWidth = 860;
+        int viewportHeight = 860;
 
         bool quit = false;
         while (!quit)
@@ -104,6 +110,8 @@ public static class Program
                             }
                             case (byte)WindowEventID.SizeChanged:
                             {
+                                viewportWidth = ev.Window.Data1;
+                                viewportHeight = ev.Window.Data2;
                                 break;
                             }
                             case (byte)WindowEventID.Minimized:
@@ -144,63 +152,20 @@ public static class Program
                         break;
                     }
 
-                    case (uint)EventType.Fingermotion:
-                    {
-                        break;
-                    }
-
-                    case (uint)EventType.Mousemotion:
-                    {
-                        if (keyboardState[(byte)KeyCode.LShift] > 0)
-                        {
-                            endX = ev.Motion.X;
-                            endY = ev.Motion.Y;
-                        }
-                        else
-                        {
-                            startX = ev.Motion.X;
-                            startY = ev.Motion.Y;
-                        }
-
-                        break;
-                    }
-
-                    case (uint)EventType.Fingerdown:
-                    {
-                        mouseButtonStates[(byte)MouseButton.Primary] = 1;
-                        break;
-                    }
-                    case (uint)EventType.Mousebuttondown:
-                    {
-                        mouseButtonStates[ev.Button.Button] = 1;
-                        break;
-                    }
-
-                    case (uint)EventType.Fingerup:
-                    {
-                        mouseButtonStates[(byte)MouseButton.Primary] = 0;
-                        break;
-                    }
-
-                    case (uint)EventType.Mousebuttonup:
-                    {
-                        mouseButtonStates[ev.Button.Button] = 0;
-                        break;
-                    }
-
-                    case (uint)EventType.Mousewheel:
-                    {
-                        break;
-                    }
-
-                    case (uint)EventType.Keyup:
-                    {
-                        break;
-                    }
-
                     case (uint)EventType.Keydown:
                     {
-                        Console.WriteLine($"Key down: {(KeyCode)ev.Key.Keysym.Scancode}");
+                        var key = (KeyCode)ev.Key.Keysym.Scancode;
+                        if (key == KeyCode.Escape)
+                        {
+                            quit = true;
+                        }
+                        else if (key == KeyCode.R)
+                        {
+                            game.RequestRestart();
+                        }
+
+                        game.HandleKeyDown(key);
+
                         break;
                     }
                 }
@@ -209,18 +174,15 @@ public static class Program
             var elapsed = timer.Elapsed;
             timer.Restart();
 
-            // game.render(renderer, RenderEvent{ elapsed, framesRenderedCounter++ });
+            game.Update(elapsed, keyboardState);
+
             unsafe
             {
                 var r = (Renderer *)renderer;
-
-                sdl.SetRenderDrawColor(r, 255, 255, 255, 255);
-                sdl.RenderClear(r);
-
-                sdl.SetRenderDrawColor(r, 255, 0, 0, 255);
-                sdl.RenderDrawLine(r, startX, startY, endX, endY);
-
+                game.Render(sdl, r, viewportWidth, viewportHeight);
                 sdl.RenderPresent(r);
+
+                sdl.SetWindowTitle((Window*)window, game.BuildWindowTitle());
             }
 
             ++framesRenderedCounter;
@@ -228,6 +190,7 @@ public static class Program
 
         unsafe
         {
+            sdl.DestroyRenderer((Renderer*)renderer);
             sdl.DestroyWindow((Window*)window);
         }
 
