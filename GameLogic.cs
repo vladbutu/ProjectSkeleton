@@ -53,7 +53,8 @@ public sealed class AdventureGame
     private const int ObstacleCount = 10;
     private const double ComboWindow = 2.5;
     private const int ComboMaxMultiplier = 5;
-
+    private const int ObstacleMovesMin = 1;
+    private const int ObstacleMovesMax = 2;
     public AdventureGame(int boardWidth, int boardHeight, ISaveStore<SnakeSaveData> saveStore)
     {
         _boardWidth = boardWidth;
@@ -241,6 +242,7 @@ public sealed class AdventureGame
 
             _food = PickFoodCell();
             TrySpawnBonus();
+            MoveObstaclesAfterFood();
         }
     }
 
@@ -342,7 +344,7 @@ public sealed class AdventureGame
                     break;
                 }
 
-                segment.Add(cell);
+            MoveObstaclesAfterFood(); // Restore obstacle movement helper method
             }
 
             if (!valid)
@@ -357,6 +359,60 @@ public sealed class AdventureGame
             }
         }
     }
+
+    private void MoveObstaclesAfterFood()
+    {
+        if (_obstacles.Count == 0)
+        {
+            return;
+        }
+
+        int moves = Random.Shared.Next(ObstacleMovesMin, ObstacleMovesMax + 1);
+
+        for (int i = 0; i < moves; i++)
+        {
+            if (_obstacles.Count == 0)
+            {
+                break;
+            }
+
+            int obstacleIndex = Random.Shared.Next(_obstacles.Count);
+            var oldPos = _obstacles[obstacleIndex];
+
+            var newPos = PickFairObstacleCell();
+            if (newPos is null)
+            {
+                continue;
+            }
+            _obstacles[obstacleIndex] = newPos.Value;
+            _obstacleSet.Remove(oldPos);
+            _obstacleSet.Add(newPos.Value);
+        }
+    }
+
+    private GridPosition? PickFairObstacleCell()
+    {
+        var head = _snake.Head;
+
+        var options = (from y in Enumerable.Range(0, _boardHeight)
+                       from x in Enumerable.Range(0, _boardWidth)
+                       let pos = new GridPosition(x, y)
+                       where !_snake.Occupies(pos)
+                       && pos != _food
+                       && _bonusFood != pos
+                       && !_obstacleSet.Contains(pos)
+                       && Math.Abs(pos.X - head.X) + Math.Abs(pos.Y - head.Y) >= 3
+                       select pos).ToArray();
+
+        if (options.Length == 0)
+        {
+            return null;
+        }
+
+        return options[Random.Shared.Next(options.Length)];
+    }
+
+
 
     private void EndRun()
     {
@@ -703,3 +759,4 @@ public sealed class AdventureGame
         };
     }
 }
+

@@ -14,6 +14,7 @@ Am folosit AI doar ca asistent de programare, nu pentru a genera jocul de la zer
 - Curatare punctuala de cod: am redenumit `PersistHighScoreAsync` in `PersistHighScore`, deoarece metoda era sincronă.
 - Fix tehnic punctual: am modificat `SdlContext.TryGetProcAddress` sa foloseasca `NativeLibrary.TryGetExport`.
 - Fix de build: am inlocuit `Rect` cu `Rectangle<int>` din `Silk.NET.Maths`, pentru compatibilitate cu Silk.NET 2.23.0.
+- Fix de sintaxa/build: am reparat o eroare de acolade in `GameLogic.cs` din zona noii mecanici de obstacole mobile (dupa fiecare fruct), astfel incat proiectul sa compileze din nou.
 
 Toata logica de gameplay, regulile jocului, liniile de cod si implementarea finala imi apartin. AI a fost folosit ca suport pentru idei, optimizare si imbunatatiri, iar contributia AI la cod a fost limitata la asistenta explicit mentionata mai jos.
 
